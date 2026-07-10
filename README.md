@@ -40,6 +40,15 @@ PocketBase queda en `:8090`, la app en `:3000`.
 4. Monta un volumen persistente para `pb_data` (ya está declarado en el compose) para que los datos sobrevivan a los redeploys.
 5. Tras el primer deploy, entra a `https://pb.tudominio.com/_/`, crea el superusuario admin y el usuario de la app (mismo paso 2 de desarrollo local).
 
+### Corriendo varios entornos (staging + producción) en el mismo VPS
+
+El volumen de datos usa el nombre `${PB_DATA_VOLUME:-orden_fin_pb_data}` en vez de dejar que Coolify lo nombre solo — así se evita que dos recursos de Coolify (uno por rama) terminen compartiendo o pisando el mismo volumen de PocketBase por accidente. Si vas a tener staging y producción en el mismo servidor:
+
+- En el recurso de **producción**, define la env var `PB_DATA_VOLUME=orden_fin_pb_data_prod`.
+- En el recurso de **staging**, define `PB_DATA_VOLUME=orden_fin_pb_data_staging`.
+
+Con eso cada entorno crea y usa su propio volumen Docker, sin importar cómo Coolify nombre el proyecto internamente. Verifica en `docker volume ls` (por SSH al VPS) que efectivamente aparezcan como dos volúmenes distintos antes de meter datos reales en staging.
+
 ## Notas / próximos pasos
 
 - La versión de PocketBase está fijada en `pocketbase/Dockerfile` (`ARG PB_VERSION`). Revisa [releases](https://github.com/pocketbase/pocketbase/releases) y actualízala si quieres una más reciente.

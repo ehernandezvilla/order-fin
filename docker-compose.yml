@@ -23,3 +23,4 @@ services:
 
 volumes:
   pb_data:
+    name: ${PB_DATA_VOLUME:-orden_fin_pb_data}
