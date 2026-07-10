@@ -3,22 +3,30 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
-import type { Category, ExtractedReceipt } from "@/lib/types";
+import type { Category, Expense, ExtractedReceipt } from "@/lib/types";
 import { ReceiptCapture } from "@/components/ReceiptCapture";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function ExpenseForm({ categories }: { categories: Category[] }) {
+export function ExpenseForm({
+  categories,
+  expense,
+}: {
+  categories: Category[];
+  expense?: Expense;
+}) {
   const router = useRouter();
-  const [amount, setAmount] = useState("");
-  const [merchant, setMerchant] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [date, setDate] = useState(todayISO());
-  const [note, setNote] = useState("");
+  const [amount, setAmount] = useState(expense ? String(expense.amount) : "");
+  const [merchant, setMerchant] = useState(expense?.merchant ?? "");
+  const [categoryId, setCategoryId] = useState(expense?.category ?? "");
+  const [date, setDate] = useState(expense ? expense.date.slice(0, 10) : todayISO());
+  const [note, setNote] = useState(expense?.note ?? "");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function handleExtracted(data: ExtractedReceipt, file: File) {
@@ -52,7 +60,11 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
     if (receiptFile) formData.append("receipt", receiptFile);
 
     try {
-      await pb().collection("expenses").create(formData);
+      if (expense) {
+        await pb().collection("expenses").update(expense.id, formData);
+      } else {
+        await pb().collection("expenses").create(formData);
+      }
       router.push("/");
       router.refresh();
     } catch {
@@ -61,9 +73,29 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
     }
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    setError(null);
+    try {
+      await pb().collection("expenses").delete(expense!.id);
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("No se pudo eliminar el gasto. Intenta de nuevo.");
+      setDeleting(false);
+    }
+  }
+
+  const existingReceiptUrl =
+    expense?.receipt ? pb().files.getUrl(expense, expense.receipt, { thumb: "300x300" }) : undefined;
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-6 py-6">
-      <ReceiptCapture categories={categories} onExtracted={handleExtracted} />
+      <ReceiptCapture
+        categories={categories}
+        onExtracted={handleExtracted}
+        initialPreviewUrl={existingReceiptUrl}
+      />
 
       <label className="flex flex-col gap-1 text-sm text-gray-600">
         Monto (CLP)
@@ -134,11 +166,46 @@ export function ExpenseForm({ categories }: { categories: Category[] }) {
 
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || deleting}
         className="rounded-lg bg-brand px-4 py-3 text-base font-medium text-white disabled:opacity-60"
       >
         {submitting ? "Guardando..." : "Guardar gasto"}
       </button>
+
+      {expense && !confirmingDelete && (
+        <button
+          type="button"
+          onClick={() => setConfirmingDelete(true)}
+          disabled={submitting || deleting}
+          className="rounded-lg px-4 py-3 text-sm font-medium text-red-600 disabled:opacity-60"
+        >
+          Eliminar gasto
+        </button>
+      )}
+
+      {expense && confirmingDelete && (
+        <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-700">¿Seguro que quieres eliminar este gasto?</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {deleting ? "Eliminando..." : "Sí, eliminar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={deleting}
+              className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

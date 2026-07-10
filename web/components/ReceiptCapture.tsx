@@ -6,12 +6,14 @@ import type { Category, ExtractedReceipt } from "@/lib/types";
 export function ReceiptCapture({
   categories,
   onExtracted,
+  initialPreviewUrl,
 }: {
   categories: Category[];
   onExtracted: (data: ExtractedReceipt, file: File) => void;
+  initialPreviewUrl?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(initialPreviewUrl ?? null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
 
   async function handleFile(e: ChangeEvent<HTMLInputElement>) {

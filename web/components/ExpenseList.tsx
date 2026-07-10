@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Expense } from "@/lib/types";
 import { formatCLP, formatDayLabel } from "@/lib/format";
 import { pb } from "@/lib/pocketbase";
@@ -28,9 +29,10 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
           {items.map((expense) => {
             const category = expense.expand?.category;
             return (
-              <div
+              <Link
                 key={expense.id}
-                className="flex items-center gap-3 border-b border-gray-100 px-6 py-3"
+                href={`/gasto/${expense.id}`}
+                className="flex items-center gap-3 border-b border-gray-100 px-6 py-3 active:bg-gray-50"
               >
                 <div
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg"
@@ -55,7 +57,7 @@ export function ExpenseList({ expenses }: { expenses: Expense[] }) {
                 <p className="shrink-0 text-sm font-semibold text-gray-900">
                   {formatCLP(expense.amount)}
                 </p>
-              </div>
+              </Link>
             );
           })}
         </div>
