@@ -1,0 +1,25 @@
+services:
+  pocketbase:
+    build: ./pocketbase
+    restart: unless-stopped
+    volumes:
+      - pb_data:/pb/pb_data
+    ports:
+      - "8090:8090"
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_PB_URL: ${NEXT_PUBLIC_PB_URL:-http://localhost:8090}
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_PB_URL: ${NEXT_PUBLIC_PB_URL:-http://localhost:8090}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - pocketbase
+
+volumes:
+  pb_data:
