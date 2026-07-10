@@ -3,14 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { pb } from "@/lib/pocketbase";
-import type { Expense } from "@/lib/types";
-import { monthLabel, monthRange, toPbDateTime } from "@/lib/format";
+import type { Expense, Tag } from "@/lib/types";
+import { monthLabel, monthRange, tagFilterExpr, toPbDateTime } from "@/lib/format";
 import { AmountSummary } from "@/components/AmountSummary";
 import { ExpenseList } from "@/components/ExpenseList";
+import { TagFilter } from "@/components/TagFilter";
 import { BottomNav } from "@/components/BottomNav";
 
 export default function DashboardPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,18 +22,29 @@ export default function DashboardPage() {
       window.location.href = "/login";
       return;
     }
+    client.collection("tags").getFullList<Tag>({ sort: "name" }).then(setTags);
+  }, []);
 
+  useEffect(() => {
+    const client = pb();
+    if (!client.authStore.isValid) return;
+
+    setLoading(true);
     const { start, end } = monthRange();
+    let filter = `date >= "${toPbDateTime(start)}" && date < "${toPbDateTime(end)}"`;
+    const tagFilter = tagFilterExpr(selectedTagIds);
+    if (tagFilter) filter += ` && (${tagFilter})`;
+
     client
       .collection("expenses")
       .getFullList<Expense>({
-        filter: `date >= "${toPbDateTime(start)}" && date < "${toPbDateTime(end)}"`,
+        filter,
         sort: "-date",
-        expand: "category",
+        expand: "category,tags",
       })
       .then(setExpenses)
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedTagIds]);
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
@@ -51,6 +65,8 @@ export default function DashboardPage() {
       <div className="mt-4">
         <AmountSummary total={total} label={monthLabel()} />
       </div>
+
+      <TagFilter tags={tags} selected={selectedTagIds} onChange={setSelectedTagIds} />
 
       {loading ? (
         <p className="px-6 py-10 text-center text-sm text-gray-400">Cargando...</p>

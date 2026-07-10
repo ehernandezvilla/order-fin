@@ -16,6 +16,11 @@ export function toPbDateTime(date: Date): string {
   return date.toISOString().replace("T", " ");
 }
 
+export function tagFilterExpr(tagIds: string[]): string {
+  if (tagIds.length === 0) return "";
+  return tagIds.map((id) => `tags.id ?= "${id}"`).join(" || ");
+}
+
 export function formatDayLabel(isoDate: string): string {
   const d = new Date(isoDate);
   const label = new Intl.DateTimeFormat("es-CL", {

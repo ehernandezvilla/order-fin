@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { pb } from "@/lib/pocketbase";
-import type { Category, Expense } from "@/lib/types";
+import type { Category, Expense, Tag } from "@/lib/types";
 import { ExpenseForm } from "@/components/ExpenseForm";
 
 export default function EditExpensePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -24,10 +25,12 @@ export default function EditExpensePage() {
 
     Promise.all([
       client.collection("categories").getFullList<Category>({ sort: "name" }),
+      client.collection("tags").getFullList<Tag>({ sort: "name" }),
       client.collection("expenses").getOne<Expense>(params.id),
     ])
-      .then(([cats, exp]) => {
+      .then(([cats, tgs, exp]) => {
         setCategories(cats);
+        setTags(tgs);
         setExpense(exp);
       })
       .catch(() => setNotFound(true))
@@ -58,7 +61,7 @@ export default function EditExpensePage() {
       )}
 
       {!loading && expense && (
-        <ExpenseForm categories={categories} expense={expense} />
+        <ExpenseForm categories={categories} tags={tags} expense={expense} />
       )}
     </>
   );

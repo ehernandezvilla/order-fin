@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
-import type { Category, Expense, ExtractedReceipt } from "@/lib/types";
+import type { Category, Expense, ExtractedReceipt, Tag } from "@/lib/types";
 import { ReceiptCapture } from "@/components/ReceiptCapture";
 
 function todayISO() {
@@ -12,9 +12,11 @@ function todayISO() {
 
 export function ExpenseForm({
   categories,
+  tags,
   expense,
 }: {
   categories: Category[];
+  tags: Tag[];
   expense?: Expense;
 }) {
   const router = useRouter();
@@ -24,10 +26,44 @@ export function ExpenseForm({
   const [date, setDate] = useState(expense ? expense.date.slice(0, 10) : todayISO());
   const [note, setNote] = useState(expense?.note ?? "");
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [availableTags, setAvailableTags] = useState<Tag[]>(tags);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(expense?.tags ?? []);
+  const [newTagName, setNewTagName] = useState("");
+  const [addingTag, setAddingTag] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function toggleTag(id: string) {
+    setSelectedTagIds((current) =>
+      current.includes(id) ? current.filter((t) => t !== id) : [...current, id]
+    );
+  }
+
+  async function handleAddTag() {
+    const name = newTagName.trim();
+    if (!name) return;
+
+    const existing = availableTags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!selectedTagIds.includes(existing.id)) setSelectedTagIds((c) => [...c, existing.id]);
+      setNewTagName("");
+      return;
+    }
+
+    setAddingTag(true);
+    try {
+      const created = await pb().collection("tags").create<Tag>({ name });
+      setAvailableTags((c) => [...c, created]);
+      setSelectedTagIds((c) => [...c, created.id]);
+      setNewTagName("");
+    } catch {
+      setError("No se pudo crear la etiqueta. Intenta de nuevo.");
+    } finally {
+      setAddingTag(false);
+    }
+  }
 
   function handleExtracted(data: ExtractedReceipt, file: File) {
     setReceiptFile(file);
@@ -57,6 +93,11 @@ export function ExpenseForm({
     formData.append("category", categoryId);
     formData.append("date", date);
     formData.append("note", note);
+    if (selectedTagIds.length > 0) {
+      for (const tagId of selectedTagIds) formData.append("tags", tagId);
+    } else {
+      formData.append("tags", "");
+    }
     if (receiptFile) formData.append("receipt", receiptFile);
 
     try {
@@ -151,6 +192,50 @@ export function ExpenseForm({
           className="rounded-lg border border-gray-300 px-4 py-3 text-base"
         />
       </label>
+
+      <div className="flex flex-col gap-2 text-sm text-gray-600">
+        Etiquetas (opcional)
+        <div className="flex flex-wrap gap-2">
+          {availableTags.map((t) => {
+            const selected = selectedTagIds.includes(t.id);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => toggleTag(t.id)}
+                className={`rounded-full px-3 py-1.5 text-sm font-medium ${
+                  selected ? "bg-brand text-white" : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {t.name}
+              </button>
+            );
+          })}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newTagName}
+            onChange={(e) => setNewTagName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddTag();
+              }
+            }}
+            placeholder="Nueva etiqueta"
+            className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-base"
+          />
+          <button
+            type="button"
+            onClick={handleAddTag}
+            disabled={addingTag || !newTagName.trim()}
+            className="shrink-0 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-600 disabled:opacity-60"
+          >
+            Agregar
+          </button>
+        </div>
+      </div>
 
       <label className="flex flex-col gap-1 text-sm text-gray-600">
         Nota (opcional)

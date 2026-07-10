@@ -6,6 +6,10 @@ export interface Category extends RecordModel {
   color: string;
 }
 
+export interface Tag extends RecordModel {
+  name: string;
+}
+
 export interface Expense extends RecordModel {
   amount: number;
   merchant: string;
@@ -13,8 +17,10 @@ export interface Expense extends RecordModel {
   date: string;
   note: string;
   receipt: string;
+  tags: string[];
   expand?: {
     category?: Category;
+    tags?: Tag[];
   };
 }
 
