@@ -7,6 +7,7 @@ import { rangeFor, rangeLabel, tagFilterExpr, toPbDateTime, type RangeKey } from
 import { AmountSummary } from "@/components/AmountSummary";
 import { RangeSelector } from "@/components/RangeSelector";
 import { CategoryBreakdown } from "@/components/CategoryBreakdown";
+import { TagBreakdown } from "@/components/TagBreakdown";
 import { TagFilter } from "@/components/TagFilter";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -64,8 +65,9 @@ export default function SummaryPage() {
       {loading ? (
         <p className="px-6 py-10 text-center text-sm text-gray-400">Cargando...</p>
       ) : (
-        <div className="pb-24">
+        <div className="flex flex-col divide-y divide-gray-100 pb-24">
           <CategoryBreakdown expenses={expenses} />
+          <TagBreakdown expenses={expenses} />
         </div>
       )}
 
