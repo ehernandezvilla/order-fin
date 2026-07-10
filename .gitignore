@@ -7,3 +7,4 @@ web/.env.local
 pocketbase/pb_data/
 *.log
 /*.env
+*.md
