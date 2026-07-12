@@ -34,7 +34,7 @@ PocketBase queda en `:8090`, la app en `:3000`.
 ## Deploy en Coolify (VPS propio)
 
 1. Crea un nuevo recurso tipo **Docker Compose** en Coolify apuntando a este repo (usa `docker-compose.yml` de la raíz).
-2. Define las variables de entorno del proyecto en Coolify: `NEXT_PUBLIC_PB_URL` (la URL pública que le asignes al servicio `pocketbase`, ej. `https://pb.tudominio.com`) y `ANTHROPIC_API_KEY`.
+2. Define las variables de entorno del proyecto en Coolify: `NEXT_PUBLIC_PB_URL` (la URL pública que le asignes al servicio `pocketbase`, ej. `https://pb.tudominio.com`), `ANTHROPIC_API_KEY`, y `PB_APP_EMAIL`/`PB_APP_PASSWORD` (credenciales del usuario de la app, usadas server-side por `/api/mcp` — ver más abajo).
    - Importante: `NEXT_PUBLIC_PB_URL` se hornea en el build del frontend (es una env var pública de Next.js), así que debe estar disponible **como build arg** al construir `web`, no solo en runtime.
 3. Asigna dominios/HTTPS a cada servicio (`pocketbase` y `web`) desde Coolify.
 4. Monta un volumen persistente para `pb_data` (ya está declarado en el compose) para que los datos sobrevivan a los redeploys.
@@ -49,9 +49,49 @@ El volumen de datos usa el nombre `${PB_DATA_VOLUME:-orden_fin_pb_data}` en vez 
 
 Con eso cada entorno crea y usa su propio volumen Docker, sin importar cómo Coolify nombre el proyecto internamente. Verifica en `docker volume ls` (por SSH al VPS) que efectivamente aparezcan como dos volúmenes distintos antes de meter datos reales en staging.
 
+## MCP: conectar un agente externo (ej. Hermes)
+
+La app expone un servidor [MCP](https://modelcontextprotocol.io/) de **solo lectura** en `/api/mcp` (transporte Streamable HTTP), para que un agente en otro servidor —como [Hermes](https://hermes-agent.nousresearch.com/)— pueda consultar tus gastos sin nunca poder escribir/borrar nada.
+
+1. Inicia sesión en la app y entra a **Ajustes** (ícono ⚙️ en el header) → `/ajustes`.
+2. Ponle un nombre a la clave (ej. "Hermes VPS") y genera una API key. El token completo (`of_...`) se muestra **una sola vez** — cópialo ahí mismo, PocketBase solo guarda su hash.
+3. Configura tu agente MCP para apuntar a `https://tu-dominio.com/api/mcp` con `Authorization: Bearer <token>`. Ejemplo de config de Hermes:
+   ```yaml
+   mcp_servers:
+     orden_fin:
+       url: "https://tu-dominio.com/api/mcp"
+       headers:
+         Authorization: "Bearer of_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   ```
+4. Si una clave se filtra o ya no la usas, revócala desde `/ajustes` — el endpoint la rechaza al siguiente request, sin redeploy.
+
+Tools disponibles: `list_expenses` (filtra por fecha/categoría/etiqueta), `get_summary` (totales agrupados por categoría o etiqueta), `list_categories`, `list_tags`. No hay tools de escritura — mantiene el principio del proyecto de que el usuario siempre confirma antes de guardar.
+
+Requiere las env vars `PB_APP_EMAIL`/`PB_APP_PASSWORD` (ver arriba) — el servidor las usa para autenticarse como el usuario de la app y así validar claves y consultar datos.
+
 ## Notas / próximos pasos
 
 - La versión de PocketBase está fijada en `pocketbase/Dockerfile` (`ARG PB_VERSION`). Revisa [releases](https://github.com/pocketbase/pocketbase/releases) y actualízala si quieres una más reciente.
 - Los íconos de `web/public/icons/icon.svg` son un placeholder simple. Para que la app se vea bien instalada en iOS (que requiere PNG, no SVG, para el ícono de home screen), genera un set real de íconos (ej. con [realfavicongenerator.net](https://realfavicongenerator.net)) y reemplázalos antes de compartir la app fuera de tu propio celular.
 - El middleware solo verifica que exista la cookie de sesión de PocketBase, no la valida contra el servidor en cada request — suficiente para uso personal, pero no es una barrera de seguridad fuerte si más adelante agregas más usuarios.
 - Fuera de alcance por ahora (a propósito): presupuestos, reportes/gráficos, multi-moneda, multi-usuario.
+
+## Changelog
+
+Resumen de mejoras mayores por período (no exhaustivo — ver `git log` para el detalle completo).
+
+### 2026-07-09 — Lanzamiento inicial
+- Registro de gastos por categoría con extracción automática de recibos (monto, comercio, fecha, categoría sugerida) vía Claude vision, siempre confirmable antes de guardar.
+- Flujo de edición y borrado de gastos.
+- Deploy parametrizado para correr staging y producción como recursos separados en el mismo VPS (puertos y volumen de datos independientes).
+
+### 2026-07-10 — Tags y resumen
+- Sistema de tags: crear, asignar a gastos y filtrar el listado por tag.
+- Desglose de gasto por tag en la página de resumen.
+
+### 2026-07-12 — Fix de captura de recibos en mobile
+- Se removió `capture="environment"` del input de subida de recibos: en mobile forzaba abrir la cámara directo y ocultaba la opción de elegir desde la galería (en desktop el atributo se ignora, por eso el bug no era visible ahí). Ahora el selector nativo de archivos se comporta igual en todas las plataformas.
+
+### 2026-07-12 — Servidor MCP + API keys autogestionadas
+- Endpoint `/api/mcp` (solo lectura) para que agentes externos (ej. Hermes) consulten gastos, categorías y etiquetas vía Streamable HTTP.
+- Página `/ajustes` para generar, listar y revocar las API keys que autentican esas conexiones, sin necesidad de tocar el servidor — rotar una clave filtrada toma un click.

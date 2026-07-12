@@ -16,6 +16,8 @@ services:
     environment:
       NEXT_PUBLIC_PB_URL: ${NEXT_PUBLIC_PB_URL:-http://localhost:8090}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      PB_APP_EMAIL: ${PB_APP_EMAIL}
+      PB_APP_PASSWORD: ${PB_APP_PASSWORD}
     ports:
       - "${WEB_HOST_PORT:-3000}:3000"
     depends_on:

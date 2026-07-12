@@ -24,6 +24,13 @@ export interface Expense extends RecordModel {
   };
 }
 
+export interface ApiKey extends RecordModel {
+  name: string;
+  prefix: string;
+  hash: string;
+  last_used: string;
+}
+
 export interface ExtractedReceipt {
   amount: number | null;
   merchant: string | null;

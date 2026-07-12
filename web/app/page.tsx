@@ -57,9 +57,14 @@ export default function DashboardPage() {
     <>
       <header className="flex items-center justify-between px-6 pt-6">
         <h1 className="text-lg font-semibold text-gray-900">Orden Fin</h1>
-        <button onClick={handleLogout} className="text-sm text-gray-400">
-          Salir
-        </button>
+        <div className="flex items-center gap-3">
+          <Link href="/ajustes" className="text-lg text-gray-400" aria-label="Ajustes">
+            ⚙️
+          </Link>
+          <button onClick={handleLogout} className="text-sm text-gray-400">
+            Salir
+          </button>
+        </div>
       </header>
 
       <div className="mt-4">
