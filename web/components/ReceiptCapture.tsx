@@ -53,7 +53,6 @@ export function ReceiptCapture({
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFile}
         className="hidden"
       />
