@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "mcp-handler": "^1.1.0",
     "next": "^15.1.0",
     "pocketbase": "^0.24.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
