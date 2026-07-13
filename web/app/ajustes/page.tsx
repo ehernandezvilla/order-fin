@@ -7,9 +7,9 @@ import type { ApiKey } from "@/lib/types";
 import { generateApiToken, hashApiToken, tokenPrefix } from "@/lib/apiKeys";
 
 function formatDateTime(iso: string): string {
-  return new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeStyle: "short" }).format(
-    new Date(iso)
-  );
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("es-CL", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 export default function SettingsPage() {
