@@ -1,3 +1,5 @@
+import type { BillingCycle, SubscriptionStatus } from "./types";
+
 export function formatCLP(amount: number): string {
   return new Intl.NumberFormat("es-CL", {
     style: "currency",
@@ -65,4 +67,45 @@ export function rangeLabel(key: RangeKey, reference: Date = new Date()): string 
   if (key === "last_7_days") return "Últimos 7 días";
   const prevMonthRef = new Date(reference.getFullYear(), reference.getMonth() - 1, 1);
   return monthLabel(prevMonthRef);
+}
+
+export const BILLING_CYCLE_OPTIONS: { key: BillingCycle; label: string; months: number }[] = [
+  { key: "mensual", label: "Mensual", months: 1 },
+  { key: "trimestral", label: "Trimestral", months: 3 },
+  { key: "semestral", label: "Semestral", months: 6 },
+  { key: "anual", label: "Anual", months: 12 },
+];
+
+export const SUBSCRIPTION_STATUS_OPTIONS: { key: SubscriptionStatus; label: string }[] = [
+  { key: "activa", label: "Activa" },
+  { key: "pausada", label: "Pausada" },
+  { key: "cancelada", label: "Cancelada" },
+];
+
+export function monthlyEquivalent(amount: number, cycle: BillingCycle): number {
+  const option = BILLING_CYCLE_OPTIONS.find((o) => o.key === cycle);
+  return amount / (option?.months ?? 1);
+}
+
+export function daysUntil(isoDate: string, reference: Date = new Date()): number {
+  const target = new Date(isoDate.slice(0, 10) + "T00:00:00");
+  const today = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate());
+  const diffMs = target.getTime() - today.getTime();
+  return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+export function renewalLabel(isoDate: string, reference: Date = new Date()): string {
+  const days = daysUntil(isoDate, reference);
+  if (days < 0) return `Vencida hace ${Math.abs(days)} días`;
+  if (days === 0) return "Renueva hoy";
+  if (days === 1) return "Renueva mañana";
+  return `Renueva en ${days} días`;
+}
+
+export function advanceByCycle(isoDate: string, cycle: BillingCycle): string {
+  const option = BILLING_CYCLE_OPTIONS.find((o) => o.key === cycle);
+  const months = option?.months ?? 1;
+  const date = new Date(isoDate.slice(0, 10) + "T00:00:00");
+  date.setMonth(date.getMonth() + months);
+  return date.toISOString().slice(0, 10);
 }
