@@ -10,16 +10,30 @@ function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function SubscriptionForm({ subscription }: { subscription?: Subscription }) {
+export function SubscriptionForm({
+  subscription,
+  linkExpenseId,
+  initialName,
+  initialAmount,
+  initialNextRenewal,
+}: {
+  subscription?: Subscription;
+  linkExpenseId?: string;
+  initialName?: string;
+  initialAmount?: string;
+  initialNextRenewal?: string;
+}) {
   const router = useRouter();
-  const [name, setName] = useState(subscription?.name ?? "");
+  const [name, setName] = useState(subscription?.name ?? initialName ?? "");
   const [owner, setOwner] = useState(subscription?.owner ?? "Yo");
-  const [amount, setAmount] = useState(subscription ? String(subscription.amount) : "");
+  const [amount, setAmount] = useState(
+    subscription ? String(subscription.amount) : initialAmount ?? ""
+  );
   const [billingCycle, setBillingCycle] = useState<BillingCycle>(
     subscription?.billing_cycle ?? "mensual"
   );
   const [nextRenewal, setNextRenewal] = useState(
-    subscription ? subscription.next_renewal.slice(0, 10) : todayISO()
+    subscription ? subscription.next_renewal.slice(0, 10) : initialNextRenewal ?? todayISO()
   );
   const [status, setStatus] = useState<SubscriptionStatus>(subscription?.status ?? "activa");
   const [notes, setNotes] = useState(subscription?.notes ?? "");
@@ -46,10 +60,16 @@ export function SubscriptionForm({ subscription }: { subscription?: Subscription
     try {
       if (subscription) {
         await pb().collection("subscriptions").update(subscription.id, data);
+        router.push("/suscripciones");
       } else {
-        await pb().collection("subscriptions").create(data);
+        const created = await pb().collection("subscriptions").create<Subscription>(data);
+        if (linkExpenseId) {
+          await pb().collection("expenses").update(linkExpenseId, { subscription: created.id });
+          router.push(`/gasto/${linkExpenseId}`);
+        } else {
+          router.push("/suscripciones");
+        }
       }
-      router.push("/suscripciones");
       router.refresh();
     } catch {
       setError("No se pudo guardar la suscripción. Intenta de nuevo.");

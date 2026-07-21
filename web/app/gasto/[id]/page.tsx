@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { pb } from "@/lib/pocketbase";
 import type { Category, Expense, Subscription, Tag } from "@/lib/types";
+import { advanceByCycle } from "@/lib/format";
 import { ExpenseForm } from "@/components/ExpenseForm";
 
 export default function EditExpensePage() {
@@ -30,7 +31,7 @@ export default function EditExpensePage() {
       client
         .collection("subscriptions")
         .getFullList<Subscription>({ filter: 'status != "cancelada"', sort: "name" }),
-      client.collection("expenses").getOne<Expense>(params.id),
+      client.collection("expenses").getOne<Expense>(params.id, { expand: "subscription" }),
     ])
       .then(([cats, tgs, subs, exp]) => {
         setCategories(cats);
@@ -66,12 +67,45 @@ export default function EditExpensePage() {
       )}
 
       {!loading && expense && (
-        <ExpenseForm
-          categories={categories}
-          tags={tags}
-          subscriptions={subscriptions}
-          expense={expense}
-        />
+        <>
+          {expense.subscription ? (
+            <div className="mx-6 mt-6 flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3 text-sm">
+              <span className="text-gray-600">
+                Vinculado a{" "}
+                <span className="font-medium text-gray-900">
+                  {expense.expand?.subscription?.name ?? "suscripción"}
+                </span>
+              </span>
+              <Link
+                href={`/suscripciones/${expense.subscription}`}
+                className="font-medium text-brand"
+              >
+                Ver
+              </Link>
+            </div>
+          ) : (
+            <div className="mx-6 mt-6">
+              <Link
+                href={`/suscripciones/nueva?expenseId=${expense.id}&name=${encodeURIComponent(
+                  expense.merchant
+                )}&amount=${expense.amount}&nextRenewal=${advanceByCycle(
+                  expense.date.slice(0, 10),
+                  "mensual"
+                )}`}
+                className="block rounded-lg border border-dashed border-gray-300 px-4 py-3 text-center text-sm font-medium text-gray-600"
+              >
+                🔁 Convertir en suscripción
+              </Link>
+            </div>
+          )}
+
+          <ExpenseForm
+            categories={categories}
+            tags={tags}
+            subscriptions={subscriptions}
+            expense={expense}
+          />
+        </>
       )}
     </>
   );
