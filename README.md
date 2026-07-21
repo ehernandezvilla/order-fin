@@ -104,3 +104,4 @@ Resumen de mejoras mayores por período (no exhaustivo — ver `git log` para el
 - Sección `/suscripciones`: listado con total mensual estimado, alerta de renovaciones dentro de 7 días, alta/edición/borrado, y botón "Marcar como renovada" que avanza la fecha según el ciclo de cobro.
 - El formulario de gasto ahora permite (opcionalmente) asociar el gasto a una suscripción existente.
 - Nueva tool de MCP `list_subscriptions` para que agentes externos también puedan consultarlas.
+- Atajo "Convertir en suscripción" desde el detalle de un gasto ya registrado: pre-llena nombre/monto/próxima renovación y vincula el gasto automáticamente al guardar, sin pasar por crear-la-suscripción-y-luego-editar-el-gasto.
