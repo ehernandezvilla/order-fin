@@ -1,10 +1,10 @@
 # Orden Fin
 
-App mobile-first para registrar gastos por categoría, sin enfoque contable. Permite cargar una foto de un recibo/comprobante y usa Claude (visión) para pre-llenar el monto, comercio, fecha y categoría sugerida — siempre confirmables antes de guardar.
+App mobile-first para registrar gastos por categoría, sin enfoque contable. Permite cargar una foto de un recibo/comprobante y usa un modelo con visión (vía OpenRouter) para pre-llenar el monto, comercio, fecha y categoría sugerida — siempre confirmables antes de guardar.
 
 - **Backend**: [PocketBase](https://pocketbase.io/) (SQLite + auth + almacenamiento de archivos, un solo binario).
 - **Frontend**: Next.js (App Router) + Tailwind CSS, pensado como PWA instalable.
-- **Extracción de recibos**: Claude vision vía `@anthropic-ai/sdk`, llamado solo desde el servidor (`/api/extract-receipt`).
+- **Extracción de recibos**: modelo con visión vía [OpenRouter](https://openrouter.ai/) (SDK `openai` apuntando a su API), llamado solo desde el servidor (`/api/extract-receipt`). El modelo se elige por env var (`OPENROUTER_MODEL`), así que se puede cambiar o complementar sin tocar código.
 
 ## Estructura
 
@@ -19,13 +19,13 @@ docker-compose.yml Levanta ambos servicios juntos
 1. **Backend**: `cd pocketbase && docker build -t orden-fin-pb . && docker run -p 8090:8090 -v pb_data:/pb/pb_data orden-fin-pb`
    Las migraciones crean las colecciones `categories` (con 8 categorías precargadas) y `expenses` automáticamente al primer arranque.
 2. Entra a `http://localhost:8090/_/`, crea el **superusuario admin** de PocketBase, y luego crea **un registro en la colección `users`** (ese es el usuario con el que inicias sesión en la app — distinto del superusuario admin).
-3. **Frontend**: `cd web && cp .env.example .env.local` (ajusta `ANTHROPIC_API_KEY`), luego `npm install && npm run dev`.
+3. **Frontend**: `cd web && cp .env.example .env.local` (ajusta `OPENROUTER_API_KEY` y `OPENROUTER_MODEL`), luego `npm install && npm run dev`.
 4. Abre `http://localhost:3000`, inicia sesión con el usuario creado en el paso 2.
 
 ## Todo junto con Docker Compose
 
 ```
-cp .env.example .env   # completa ANTHROPIC_API_KEY
+cp .env.example .env   # completa OPENROUTER_API_KEY y OPENROUTER_MODEL
 docker compose up --build
 ```
 
@@ -34,7 +34,7 @@ PocketBase queda en `:8090`, la app en `:3000`.
 ## Deploy en Coolify (VPS propio)
 
 1. Crea un nuevo recurso tipo **Docker Compose** en Coolify apuntando a este repo (usa `docker-compose.yml` de la raíz).
-2. Define las variables de entorno del proyecto en Coolify: `NEXT_PUBLIC_PB_URL` (la URL pública que le asignes al servicio `pocketbase`, ej. `https://pb.tudominio.com`), `ANTHROPIC_API_KEY`, y `PB_APP_EMAIL`/`PB_APP_PASSWORD` (credenciales del usuario de la app, usadas server-side por `/api/mcp` — ver más abajo).
+2. Define las variables de entorno del proyecto en Coolify: `NEXT_PUBLIC_PB_URL` (la URL pública que le asignes al servicio `pocketbase`, ej. `https://pb.tudominio.com`), `OPENROUTER_API_KEY`/`OPENROUTER_MODEL`, y `PB_APP_EMAIL`/`PB_APP_PASSWORD` (credenciales del usuario de la app, usadas server-side por `/api/mcp` — ver más abajo).
    - Importante: `NEXT_PUBLIC_PB_URL` se hornea en el build del frontend (es una env var pública de Next.js), así que debe estar disponible **como build arg** al construir `web`, no solo en runtime.
 3. Asigna dominios/HTTPS a cada servicio (`pocketbase` y `web`) desde Coolify.
 4. Monta un volumen persistente para `pb_data` (ya está declarado en el compose) para que los datos sobrevivan a los redeploys.
@@ -95,3 +95,6 @@ Resumen de mejoras mayores por período (no exhaustivo — ver `git log` para el
 ### 2026-07-12 — Servidor MCP + API keys autogestionadas
 - Endpoint `/api/mcp` (solo lectura) para que agentes externos (ej. Hermes) consulten gastos, categorías y etiquetas vía Streamable HTTP.
 - Página `/ajustes` para generar, listar y revocar las API keys que autentican esas conexiones, sin necesidad de tocar el servidor — rotar una clave filtrada toma un click.
+
+### 2026-07-21 — Extracción de recibos migrada a OpenRouter
+- Reemplazado `@anthropic-ai/sdk` por el SDK `openai` apuntando a OpenRouter (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`), para poder cambiar o complementar el modelo de visión sin tocar código.
