@@ -3,7 +3,7 @@ import { z } from "zod";
 import { pbServer } from "@/lib/pocketbaseServer";
 import { hashApiToken, isValidTokenFormat } from "@/lib/apiKeys";
 import { toPbDateTime } from "@/lib/format";
-import type { ApiKey, Category, Expense, Tag } from "@/lib/types";
+import type { ApiKey, Category, Expense, Subscription, Tag } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -130,6 +130,30 @@ const handler = createMcpHandler(
         return {
           content: [{ type: "text" as const, text: JSON.stringify(tags.map((t) => t.name), null, 2) }],
         };
+      }
+    );
+
+    server.registerTool(
+      "list_subscriptions",
+      {
+        title: "Listar suscripciones",
+        description:
+          "Lista las suscripciones registradas (nombre, dueño, monto, frecuencia de cobro, próxima renovación y estado).",
+      },
+      async () => {
+        const client = await pbServer();
+        const subscriptions = await client
+          .collection("subscriptions")
+          .getFullList<Subscription>({ sort: "next_renewal" });
+        const items = subscriptions.map((s) => ({
+          name: s.name,
+          owner: s.owner,
+          amount: s.amount,
+          billing_cycle: s.billing_cycle,
+          next_renewal: s.next_renewal,
+          status: s.status,
+        }));
+        return { content: [{ type: "text" as const, text: JSON.stringify(items, null, 2) }] };
       }
     );
   },

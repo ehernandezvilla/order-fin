@@ -65,7 +65,7 @@ La app expone un servidor [MCP](https://modelcontextprotocol.io/) de **solo lect
    ```
 4. Si una clave se filtra o ya no la usas, revócala desde `/ajustes` — el endpoint la rechaza al siguiente request, sin redeploy.
 
-Tools disponibles: `list_expenses` (filtra por fecha/categoría/etiqueta), `get_summary` (totales agrupados por categoría o etiqueta), `list_categories`, `list_tags`. No hay tools de escritura — mantiene el principio del proyecto de que el usuario siempre confirma antes de guardar.
+Tools disponibles: `list_expenses` (filtra por fecha/categoría/etiqueta), `get_summary` (totales agrupados por categoría o etiqueta), `list_categories`, `list_tags`, `list_subscriptions`. No hay tools de escritura — mantiene el principio del proyecto de que el usuario siempre confirma antes de guardar.
 
 Requiere las env vars `PB_APP_EMAIL`/`PB_APP_PASSWORD` (ver arriba) — el servidor las usa para autenticarse como el usuario de la app y así validar claves y consultar datos.
 
@@ -98,3 +98,11 @@ Resumen de mejoras mayores por período (no exhaustivo — ver `git log` para el
 
 ### 2026-07-21 — Extracción de recibos migrada a OpenRouter
 - Reemplazado `@anthropic-ai/sdk` por el SDK `openai` apuntando a OpenRouter (`OPENROUTER_API_KEY` + `OPENROUTER_MODEL`), para poder cambiar o complementar el modelo de visión sin tocar código.
+
+### 2026-07-21 — Suscripciones centralizadas
+- Nueva colección `subscriptions` (dueño, monto, frecuencia de cobro, próxima renovación, estado) con relación opcional desde `expenses`, para vincular un gasto puntual a la suscripción que lo originó.
+- Sección `/suscripciones`: listado con total mensual estimado, alerta de renovaciones dentro de 7 días, alta/edición/borrado, y botón "Marcar como renovada" que avanza la fecha según el ciclo de cobro.
+- El formulario de gasto ahora permite (opcionalmente) asociar el gasto a una suscripción existente.
+- Nueva tool de MCP `list_subscriptions` para que agentes externos también puedan consultarlas.
+- Atajo "Convertir en suscripción" desde el detalle de un gasto ya registrado: pre-llena nombre/monto/próxima renovación y vincula el gasto automáticamente al guardar, sin pasar por crear-la-suscripción-y-luego-editar-el-gasto.
+- Sugerencia automática de suscripción: si el comercio de un gasto nuevo coincide con el nombre de una suscripción activa (ej. "Netflix" un mes después), el formulario pre-selecciona esa suscripción — el usuario igual confirma al guardar, no se vincula nada solo.

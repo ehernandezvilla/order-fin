@@ -3,12 +3,16 @@ import type { Expense } from "@/lib/types";
 import { formatCLP, formatDayLabel } from "@/lib/format";
 import { pb } from "@/lib/pocketbase";
 
-export function ExpenseList({ expenses }: { expenses: Expense[] }) {
+export function ExpenseList({
+  expenses,
+  emptyMessage = "Aún no registras gastos este mes.",
+}: {
+  expenses: Expense[];
+  emptyMessage?: string;
+}) {
   if (expenses.length === 0) {
     return (
-      <p className="px-6 py-10 text-center text-sm text-gray-400">
-        Aún no registras gastos este mes.
-      </p>
+      <p className="px-6 py-10 text-center text-sm text-gray-400">{emptyMessage}</p>
     );
   }
 

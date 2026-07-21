@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
-import type { Category, Expense, ExtractedReceipt, Tag } from "@/lib/types";
+import type { Category, Expense, ExtractedReceipt, Subscription, Tag } from "@/lib/types";
 import { ReceiptCapture } from "@/components/ReceiptCapture";
 
 function todayISO() {
@@ -13,10 +13,12 @@ function todayISO() {
 export function ExpenseForm({
   categories,
   tags,
+  subscriptions = [],
   expense,
 }: {
   categories: Category[];
   tags: Tag[];
+  subscriptions?: Subscription[];
   expense?: Expense;
 }) {
   const router = useRouter();
@@ -25,6 +27,8 @@ export function ExpenseForm({
   const [categoryId, setCategoryId] = useState(expense?.category ?? "");
   const [date, setDate] = useState(expense ? expense.date.slice(0, 10) : todayISO());
   const [note, setNote] = useState(expense?.note ?? "");
+  const [subscriptionId, setSubscriptionId] = useState(expense?.subscription ?? "");
+  const [subscriptionTouched, setSubscriptionTouched] = useState(!!expense?.subscription);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(expense?.tags ?? []);
@@ -65,6 +69,20 @@ export function ExpenseForm({
     }
   }
 
+  useEffect(() => {
+    if (subscriptionTouched) return;
+    const trimmed = merchant.trim().toLowerCase();
+    if (!trimmed) {
+      setSubscriptionId("");
+      return;
+    }
+    const match = subscriptions.find((s) => {
+      const name = s.name.trim().toLowerCase();
+      return name === trimmed || trimmed.includes(name) || name.includes(trimmed);
+    });
+    setSubscriptionId(match?.id ?? "");
+  }, [merchant, subscriptions, subscriptionTouched]);
+
   function handleExtracted(data: ExtractedReceipt, file: File) {
     setReceiptFile(file);
     if (data.amount) setAmount(String(Math.round(data.amount)));
@@ -93,6 +111,7 @@ export function ExpenseForm({
     formData.append("category", categoryId);
     formData.append("date", date);
     formData.append("note", note);
+    formData.append("subscription", subscriptionId);
     if (selectedTagIds.length > 0) {
       for (const tagId of selectedTagIds) formData.append("tags", tagId);
     } else {
@@ -236,6 +255,27 @@ export function ExpenseForm({
           </button>
         </div>
       </div>
+
+      {subscriptions.length > 0 && (
+        <label className="flex flex-col gap-1 text-sm text-gray-600">
+          ¿Es parte de una suscripción? (opcional)
+          <select
+            value={subscriptionId}
+            onChange={(e) => {
+              setSubscriptionId(e.target.value);
+              setSubscriptionTouched(true);
+            }}
+            className="rounded-lg border border-gray-300 px-4 py-3 text-base"
+          >
+            <option value="">Ninguna</option>
+            {subscriptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({s.owner})
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="flex flex-col gap-1 text-sm text-gray-600">
         Nota (opcional)
