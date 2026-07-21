@@ -105,3 +105,4 @@ Resumen de mejoras mayores por período (no exhaustivo — ver `git log` para el
 - El formulario de gasto ahora permite (opcionalmente) asociar el gasto a una suscripción existente.
 - Nueva tool de MCP `list_subscriptions` para que agentes externos también puedan consultarlas.
 - Atajo "Convertir en suscripción" desde el detalle de un gasto ya registrado: pre-llena nombre/monto/próxima renovación y vincula el gasto automáticamente al guardar, sin pasar por crear-la-suscripción-y-luego-editar-el-gasto.
+- Sugerencia automática de suscripción: si el comercio de un gasto nuevo coincide con el nombre de una suscripción activa (ej. "Netflix" un mes después), el formulario pre-selecciona esa suscripción — el usuario igual confirma al guardar, no se vincula nada solo.

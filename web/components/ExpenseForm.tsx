@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
 import type { Category, Expense, ExtractedReceipt, Subscription, Tag } from "@/lib/types";
@@ -28,6 +28,7 @@ export function ExpenseForm({
   const [date, setDate] = useState(expense ? expense.date.slice(0, 10) : todayISO());
   const [note, setNote] = useState(expense?.note ?? "");
   const [subscriptionId, setSubscriptionId] = useState(expense?.subscription ?? "");
+  const [subscriptionTouched, setSubscriptionTouched] = useState(!!expense?.subscription);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(expense?.tags ?? []);
@@ -67,6 +68,20 @@ export function ExpenseForm({
       setAddingTag(false);
     }
   }
+
+  useEffect(() => {
+    if (subscriptionTouched) return;
+    const trimmed = merchant.trim().toLowerCase();
+    if (!trimmed) {
+      setSubscriptionId("");
+      return;
+    }
+    const match = subscriptions.find((s) => {
+      const name = s.name.trim().toLowerCase();
+      return name === trimmed || trimmed.includes(name) || name.includes(trimmed);
+    });
+    setSubscriptionId(match?.id ?? "");
+  }, [merchant, subscriptions, subscriptionTouched]);
 
   function handleExtracted(data: ExtractedReceipt, file: File) {
     setReceiptFile(file);
@@ -246,7 +261,10 @@ export function ExpenseForm({
           ¿Es parte de una suscripción? (opcional)
           <select
             value={subscriptionId}
-            onChange={(e) => setSubscriptionId(e.target.value)}
+            onChange={(e) => {
+              setSubscriptionId(e.target.value);
+              setSubscriptionTouched(true);
+            }}
             className="rounded-lg border border-gray-300 px-4 py-3 text-base"
           >
             <option value="">Ninguna</option>
