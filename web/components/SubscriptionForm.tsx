@@ -4,11 +4,11 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
 import type { BillingCycle, Subscription, SubscriptionStatus } from "@/lib/types";
-import { BILLING_CYCLE_OPTIONS, SUBSCRIPTION_STATUS_OPTIONS } from "@/lib/format";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import {
+  BILLING_CYCLE_OPTIONS,
+  SUBSCRIPTION_STATUS_OPTIONS,
+  localDateISO as todayISO,
+} from "@/lib/format";
 
 export function SubscriptionForm({
   subscription,

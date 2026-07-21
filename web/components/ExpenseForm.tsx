@@ -5,10 +5,7 @@ import { useRouter } from "next/navigation";
 import { pb } from "@/lib/pocketbase";
 import type { Category, Expense, ExtractedReceipt, Subscription, Tag } from "@/lib/types";
 import { ReceiptCapture } from "@/components/ReceiptCapture";
-
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { localDateISO as todayISO } from "@/lib/format";
 
 export function ExpenseForm({
   categories,
