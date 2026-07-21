@@ -8,3 +8,4 @@ pocketbase/pb_data/
 *.log
 /*.env
 *.md
+.claude
