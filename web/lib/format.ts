@@ -76,6 +76,13 @@ export function rangeLabel(key: RangeKey, reference: Date = new Date()): string 
   return monthLabel(prevMonthRef);
 }
 
+export function daysElapsedInRange(key: RangeKey, reference: Date = new Date()): number {
+  if (key === "this_month") return reference.getDate();
+  if (key === "last_7_days") return 7;
+  const prevMonthRef = new Date(reference.getFullYear(), reference.getMonth() - 1, 1);
+  return new Date(prevMonthRef.getFullYear(), prevMonthRef.getMonth() + 1, 0).getDate();
+}
+
 export const MONTHLY_AVERAGE_WINDOW = 6;
 
 export function monthKey(date: Date): string {

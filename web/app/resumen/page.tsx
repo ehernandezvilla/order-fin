@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { pb } from "@/lib/pocketbase";
 import type { Expense, Tag } from "@/lib/types";
 import {
+  daysElapsedInRange,
   monthsWindowRange,
   rangeFor,
   rangeLabel,
@@ -53,6 +54,7 @@ export default function SummaryPage() {
         filter,
         sort: "-date",
         expand: "category,tags",
+        requestKey: "resumen-range",
       })
       .then(setExpenses)
       .finally(() => setLoading(false));
@@ -69,11 +71,12 @@ export default function SummaryPage() {
 
     client
       .collection("expenses")
-      .getFullList<Expense>({ filter, sort: "-date" })
+      .getFullList<Expense>({ filter, sort: "-date", requestKey: "resumen-monthly-avg" })
       .then(setMonthlyExpenses);
   }, [selectedTagIds]);
 
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+  const dailyAverage = total / daysElapsedInRange(range);
 
   return (
     <>
@@ -83,7 +86,7 @@ export default function SummaryPage() {
 
       <RangeSelector value={range} onChange={setRange} />
 
-      <AmountSummary total={total} label={rangeLabel(range)} />
+      <AmountSummary total={total} label={rangeLabel(range)} dailyAverage={dailyAverage} />
 
       <TagFilter tags={tags} selected={selectedTagIds} onChange={setSelectedTagIds} />
 
