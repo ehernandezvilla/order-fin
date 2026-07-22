@@ -3,17 +3,27 @@
 import { useEffect, useState } from "react";
 import { pb } from "@/lib/pocketbase";
 import type { Expense, Tag } from "@/lib/types";
-import { rangeFor, rangeLabel, tagFilterExpr, toPbDateTime, type RangeKey } from "@/lib/format";
+import {
+  monthsWindowRange,
+  rangeFor,
+  rangeLabel,
+  tagFilterExpr,
+  toPbDateTime,
+  MONTHLY_AVERAGE_WINDOW,
+  type RangeKey,
+} from "@/lib/format";
 import { AmountSummary } from "@/components/AmountSummary";
 import { RangeSelector } from "@/components/RangeSelector";
 import { CategoryBreakdown } from "@/components/CategoryBreakdown";
 import { TagBreakdown } from "@/components/TagBreakdown";
 import { TagFilter } from "@/components/TagFilter";
+import { MonthlyAverage } from "@/components/MonthlyAverage";
 import { BottomNav } from "@/components/BottomNav";
 
 export default function SummaryPage() {
   const [range, setRange] = useState<RangeKey>("this_month");
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [monthlyExpenses, setMonthlyExpenses] = useState<Expense[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +58,21 @@ export default function SummaryPage() {
       .finally(() => setLoading(false));
   }, [range, selectedTagIds]);
 
+  useEffect(() => {
+    const client = pb();
+    if (!client.authStore.isValid) return;
+
+    const { start, end } = monthsWindowRange(MONTHLY_AVERAGE_WINDOW);
+    let filter = `date >= "${toPbDateTime(start)}" && date < "${toPbDateTime(end)}"`;
+    const tagFilter = tagFilterExpr(selectedTagIds);
+    if (tagFilter) filter += ` && (${tagFilter})`;
+
+    client
+      .collection("expenses")
+      .getFullList<Expense>({ filter, sort: "-date" })
+      .then(setMonthlyExpenses);
+  }, [selectedTagIds]);
+
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
 
   return (
@@ -61,6 +86,10 @@ export default function SummaryPage() {
       <AmountSummary total={total} label={rangeLabel(range)} />
 
       <TagFilter tags={tags} selected={selectedTagIds} onChange={setSelectedTagIds} />
+
+      <div className="border-t border-gray-100">
+        <MonthlyAverage expenses={monthlyExpenses} />
+      </div>
 
       {loading ? (
         <p className="px-6 py-10 text-center text-sm text-gray-400">Cargando...</p>
