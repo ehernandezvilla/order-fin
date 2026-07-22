@@ -76,6 +76,25 @@ export function rangeLabel(key: RangeKey, reference: Date = new Date()): string 
   return monthLabel(prevMonthRef);
 }
 
+export const MONTHLY_AVERAGE_WINDOW = 6;
+
+export function monthKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function monthShortLabel(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(y, m - 1, 1);
+  const label = new Intl.DateTimeFormat("es-CL", { month: "short" }).format(d);
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+export function monthsWindowRange(months: number, reference: Date = new Date()) {
+  const start = new Date(reference.getFullYear(), reference.getMonth() - (months - 1), 1);
+  const end = new Date(reference.getFullYear(), reference.getMonth() + 1, 1);
+  return { start, end };
+}
+
 export const BILLING_CYCLE_OPTIONS: { key: BillingCycle; label: string; months: number }[] = [
   { key: "mensual", label: "Mensual", months: 1 },
   { key: "trimestral", label: "Trimestral", months: 3 },
